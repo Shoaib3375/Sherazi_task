@@ -2,80 +2,65 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ProductResource;
+use App\Http\Resources\SalesReportResource;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Order;
+use App\Models\OrderItem;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::all();
+        $products = Cache::remember('products_page_' . request('page', 1), 3600, function () {
+            return Product::with('category')->paginate(15);
+        });
 
-        $result = [];
-        foreach ($products as $product) {
-            $result[] = [
-                'id'       => $product->id,
-                'name'     => $product->name,
-                'price'    => $product->price,
-                'stock'    => $product->stock,
-                'category' => $product->category->name,
-            ];
-        }
-
-        return response()->json($result);
+        return ProductResource::collection($products);
     }
 
     public function salesReport()
     {
-        $orders = Order::all();
+        $orderItems = OrderItem::with(['order.customer', 'product'])->paginate(15);
 
-        $report = [];
-        foreach ($orders as $order) {
-            foreach ($order->items as $item) {
-                $report[] = [
-                    'order_id'     => $order->id,
-                    'product_name' => $item->product->name,
-                    'qty'          => $item->quantity,
-                    'total'        => $item->quantity * $item->product->price,
-                    'customer'     => $order->customer->name,
-                ];
-            }
-        }
-
-        return response()->json($report);
+        return SalesReportResource::collection($orderItems);
     }
 
     public function dashboard()
     {
-        $totalProducts = Product::all()->count();
-        $totalOrders   = Order::all()->count();
-        $totalRevenue  = Order::all()->sum('total_amount');
-        $categories    = Category::all();
+        return Cache::remember('dashboard_stats', 3600, function () {
+            $totalProducts = Product::count();
+            $totalOrders   = Order::count();
+            $totalRevenue  = Order::sum('total_amount');
+            $categories    = Category::all();
 
-        $topProducts = Product::all()
-            ->sortByDesc('sold_count')
-            ->take(5)
-            ->values();
+            $topProducts = Product::orderByDesc('sold_count')
+                ->take(5)
+                ->get();
 
-        return response()->json([
-            'total_products' => $totalProducts,
-            'total_orders'   => $totalOrders,
-            'total_revenue'  => $totalRevenue,
-            'categories'     => $categories,
-            'top_products'   => $topProducts,
-        ]);
+            return response()->json([
+                'total_products' => $totalProducts,
+                'total_orders'   => $totalOrders,
+                'total_revenue'  => $totalRevenue,
+                'categories'     => $categories,
+                'top_products'   => $topProducts,
+            ])->getData();
+        });
     }
 
     public function search(Request $request)
     {
         $keyword  = $request->input('q');
-        $products = Product::where('name', 'LIKE', '%' . $keyword . '%')
+        $products = Product::with('category')
+                           ->where('name', 'LIKE', '%' . $keyword . '%')
                            ->orWhere('description', 'LIKE', '%' . $keyword . '%')
-                           ->get();
+                           ->paginate(15);
 
-        return response()->json($products);
+        return ProductResource::collection($products);
     }
 
     public function store(Request $request)
@@ -88,6 +73,11 @@ class ProductController extends Controller
         ]);
 
         $product = Product::create($request->all());
+
+        Cache::forget('dashboard_stats');
+        // Clear product pages cache if needed, but for simplicity we clear the main dashboard
+        // In real world, we might use tags if supported by redis
+        Cache::flush();
 
         return response()->json($product, 201);
     }
