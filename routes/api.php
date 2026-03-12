@@ -3,6 +3,22 @@
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\OrderController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+});
+
+Route::middleware('tenant')->group(function () {
+    Route::get('/tenant/test', function (Request $request) {
+        return response()->json([
+            'message' => 'Multi-tenant middleware working!',
+            'tenant_id' => $request->tenant_id
+        ]);
+    });
+});
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::post('/products', [ProductController::class, 'store']);

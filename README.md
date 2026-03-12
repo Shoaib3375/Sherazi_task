@@ -111,6 +111,26 @@ You will have a **15-minute live Q&A** where you will be asked:
 
 Good luck! 💪
 — Sherazi IT Team
+## 🎁 Bonus & Extended Tasks
+
+### 1. Laravel Sanctum Authentication
+- **Implemented**: `laravel/sanctum` installed and configured.
+- **Protected Route**: `GET /api/user` is now protected by `auth:sanctum` middleware.
+- **Verification**: Verified with `ExtendedApiTest`.
+
+### 2. Multi-tenant Middleware
+- **Middleware**: `MultiTenantMiddleware` created to handle tenant scoping.
+- **Implementation**: It requires an `X-Tenant-ID` header. In a real-world scenario, this would be used to switch database connections or apply global query scopes.
+- **Route**: `GET /api/tenant/test` demonstrates the middleware in action.
+
+### 3. Laravel Horizon (Queue Monitoring)
+- **Installed**: `laravel/horizon` installed.
+- **Configuration**: `config/horizon.php` and `HorizonServiceProvider` have been published.
+- **Note**: Since the current environment is Windows, `pcntl` extension is not available natively. To run Horizon, please use **WSL (Windows Subsystem for Linux)** or a Docker-based environment (like Laravel Sail) where `pcntl` is supported.
+- **Command to run (in Linux/WSL)**: `php artisan horizon`
+
+---
+
 ## Fixed Issues and Optimizations
 
 1. **N+1 Query Problems Fixed**:
