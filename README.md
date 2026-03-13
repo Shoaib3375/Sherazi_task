@@ -111,4 +111,54 @@ You will have a **15-minute live Q&A** where you will be asked:
 
 Good luck! 💪
 — Sherazi IT Team
+## 🎁 Bonus & Extended Tasks
+
+### 1. Laravel Sanctum Authentication
+- **Implemented**: `laravel/sanctum` installed and configured.
+- **Protected Route**: `GET /api/user` is now protected by `auth:sanctum` middleware.
+- **Verification**: Verified with `ExtendedApiTest`.
+
+### 2. Multi-tenant Middleware
+- **Middleware**: `MultiTenantMiddleware` created to handle tenant scoping.
+- **Implementation**: It requires an `X-Tenant-ID` header. In a real-world scenario, this would be used to switch database connections or apply global query scopes.
+- **Route**: `GET /api/tenant/test` demonstrates the middleware in action.
+
+### 3. Laravel Horizon (Queue Monitoring)
+- **Installed**: `laravel/horizon` installed.
+- **Configuration**: `config/horizon.php` and `HorizonServiceProvider` have been published.
+- **Note**: Since the current environment is Windows, `pcntl` extension is not available natively. To run Horizon, please use **WSL (Windows Subsystem for Linux)** or a Docker-based environment (like Laravel Sail) where `pcntl` is supported.
+- **Command to run (in Linux/WSL)**: `php artisan horizon`
+
+---
+
+## Fixed Issues and Optimizations
+
+1. **N+1 Query Problems Fixed**:
+   - Used `with()` for eager loading categories in `ProductController@index`.
+   - Used `with(['order.customer', 'product'])` in `ProductController@salesReport`.
+   - Used `with('customer')->withCount('items')` in `OrderController@index`.
+
+2. **Caching Implemented**:
+   - Redis caching added to `GET /api/products/dashboard` (`dashboard_stats` key).
+   - Redis caching added to `GET /api/products` (paginated keys like `products_page_1`).
+   - Cache invalidation implemented in `ProductController@store` and `OrderController@store` using `Cache::flush()`.
+
+3. **Pagination Added**:
+   - Proper pagination (15 per page) added to `/api/products`, `/api/orders`, and `/api/products/sales-report`.
+
+4. **Database Indexing**:
+   - Added indexes on `products.name`, `orders.status`, and `products.sold_count` via a new migration.
+
+5. **Security & Data Integrity**:
+   - Wrapped `POST /api/orders` in a `DB::transaction()` to ensure atomicity.
+   - Fixed SQL Injection risk in `GET /api/orders/filter` by using Eloquent query builder instead of raw SQL with direct variables.
+
+6. **API Response Optimization**:
+   - Implemented Laravel API Resources (`ProductResource`, `OrderResource`, `SalesReportResource`) for consistent and clean JSON responses.
+
+7. **Efficient Aggregation**:
+   - Replaced `Product::all()->count()` with `Product::count()` to perform count at the database level.
+
+---
+
 # Sherazi_task
